@@ -1,0 +1,33 @@
+{
+  "name": "sales-call-analyzer",
+  "version": "1.0.0",
+  "description": "CLI tool for generating and analyzing sales call transcripts using OpenAI GPT",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "test": "jest",
+    "generate": "ts-node src/commands/generate.ts",
+    "summarize": "ts-node src/commands/summarize.ts",
+    "query": "ts-node src/commands/query.ts"
+  },
+  "keywords": ["openai", "gpt", "sales", "transcripts", "cli"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "openai": "^4.28.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.4.1",
+    "chalk": "^4.1.2",
+    "sqlite3": "^5.1.7",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "@types/jest": "^29.5.11",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2"
+  }
+}
