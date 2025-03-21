@@ -1,13 +1,14 @@
-import OpenAI from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
 import { TranscriptLine, Speaker } from '../types';
 
 export class OpenAIService {
-  private openai: OpenAI;
+  private openai: OpenAIApi;
 
   constructor() {
-    this.openai = new OpenAI({
+    const configuration = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    this.openai = new OpenAIApi(configuration);
   }
 
   async generateTranscript(topic: string, duration: number = 5): Promise<TranscriptLine[]> {
@@ -16,13 +17,14 @@ export class OpenAIService {
     timestamp speaker(company): text
     Include natural conversation flow, objections, and negotiations.`;
 
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
+    const response = await this.openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: prompt,
+      max_tokens: 1000,
       temperature: 0.7,
     });
 
-    const transcriptText = response.choices[0].message.content;
+    const transcriptText = response.data.choices[0].text;
     if (!transcriptText) throw new Error("Failed to generate transcript");
 
     return this.parseTranscript(transcriptText);
@@ -33,18 +35,14 @@ export class OpenAIService {
       `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
     ).join('\n');
 
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { 
-          role: "user", 
-          content: `Please provide a concise summary of the key points from this sales call transcript:\n${transcriptText}` 
-        }
-      ],
+    const response = await this.openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: `Please provide a concise summary of the key points from this sales call transcript:\n${transcriptText}`,
+      max_tokens: 200,
       temperature: 0.5,
     });
 
-    return response.choices[0].message.content || "No summary generated";
+    return response.data.choices[0].text?.trim() || "No summary generated";
   }
 
   async answerQuestion(transcript: TranscriptLine[], question: string): Promise<string> {
@@ -52,18 +50,14 @@ export class OpenAIService {
       `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
     ).join('\n');
 
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { 
-          role: "user", 
-          content: `Based on this transcript:\n${transcriptText}\n\nQuestion: ${question}` 
-        }
-      ],
+    const response = await this.openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: `Based on this transcript:\n${transcriptText}\n\nQuestion: ${question}`,
+      max_tokens: 150,
       temperature: 0.3,
     });
 
-    return response.choices[0].message.content || "Could not answer the question";
+    return response.data.choices[0].text?.trim() || "Could not answer the question";
   }
 
   private parseTranscript(text: string): TranscriptLine[] {
