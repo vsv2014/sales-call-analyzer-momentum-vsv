@@ -1,0 +1,49 @@
+{
+  "lines": [
+    {
+      "timestamp": "00:00:00",
+      "speaker": {
+        "name": "Sarah",
+        "company": "cloudtech.io"
+      },
+      "text": "Hi John, thanks for taking the time to discuss our cloud solutions today."
+    },
+    {
+      "timestamp": "00:00:05",
+      "speaker": {
+        "name": "John",
+        "company": "enterprise.com"
+      },
+      "text": "Thanks for reaching out, Sarah. We've been looking to optimize our cloud costs."
+    },
+    {
+      "timestamp": "00:00:12",
+      "speaker": {
+        "name": "Sarah",
+        "company": "cloudtech.io"
+      },
+      "text": "Perfect timing! Our new pricing model can help reduce your costs by up to 30%."
+    },
+    {
+      "timestamp": "00:00:20",
+      "speaker": {
+        "name": "John",
+        "company": "enterprise.com"
+      },
+      "text": "That sounds promising. What's the minimum commitment period?"
+    },
+    {
+      "timestamp": "00:00:25",
+      "speaker": {
+        "name": "Sarah",
+        "company": "cloudtech.io"
+      },
+      "text": "We offer flexible terms starting from 6 months, with additional discounts for annual commitments."
+    }
+  ],
+  "metadata": {
+    "date": "2024-03-21",
+    "duration": "5 minutes",
+    "language": "en"
+  }
+}

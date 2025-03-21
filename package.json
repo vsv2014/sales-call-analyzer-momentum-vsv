@@ -9,7 +9,8 @@
     "test": "jest",
     "generate": "ts-node src/commands/generate.ts",
     "summarize": "ts-node src/commands/summarize.ts",
-    "query": "ts-node src/commands/query.ts"
+    "query": "ts-node src/commands/query.ts",
+    "demo": "ts-node src/demo.ts"
   },
   "keywords": ["openai", "gpt", "sales", "transcripts", "cli"],
   "author": "",
