@@ -17,14 +17,14 @@ export class OpenAIService {
     timestamp speaker(company): text
     Include natural conversation flow, objections, and negotiations.`;
 
-    const response = await this.openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: prompt,
-      max_tokens: 1000,
+    const response = await this.openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
+      max_tokens: 1000
     });
 
-    const transcriptText = response.data.choices[0].text;
+    const transcriptText = response.data.choices[0].message?.content;
     if (!transcriptText) throw new Error("Failed to generate transcript");
 
     return this.parseTranscript(transcriptText);
@@ -35,14 +35,17 @@ export class OpenAIService {
       `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
     ).join('\n');
 
-    const response = await this.openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: `Please provide a concise summary of the key points from this sales call transcript:\n${transcriptText}`,
-      max_tokens: 200,
+    const response = await this.openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ 
+        role: "user", 
+        content: `Please provide a concise summary of the key points from this sales call transcript:\n${transcriptText}` 
+      }],
       temperature: 0.5,
+      max_tokens: 200
     });
 
-    return response.data.choices[0].text?.trim() || "No summary generated";
+    return response.data.choices[0].message?.content?.trim() || "No summary generated";
   }
 
   async answerQuestion(transcript: TranscriptLine[], question: string): Promise<string> {
@@ -50,14 +53,17 @@ export class OpenAIService {
       `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
     ).join('\n');
 
-    const response = await this.openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: `Based on this transcript:\n${transcriptText}\n\nQuestion: ${question}`,
-      max_tokens: 150,
+    const response = await this.openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ 
+        role: "user", 
+        content: `Based on this transcript:\n${transcriptText}\n\nQuestion: ${question}` 
+      }],
       temperature: 0.3,
+      max_tokens: 150
     });
 
-    return response.data.choices[0].text?.trim() || "Could not answer the question";
+    return response.data.choices[0].message?.content?.trim() || "Could not answer the question";
   }
 
   private parseTranscript(text: string): TranscriptLine[] {
