@@ -1,80 +1,93 @@
 # Sales Call Transcript Generator and Analyzer
 
-A CLI tool for generating and analyzing sales call transcripts. Supports both OpenAI GPT models and a mock service for demonstration purposes.
+A CLI tool for generating and analyzing sales call transcripts. Built with TypeScript and designed to work with both OpenAI GPT models and a built-in mock service.
 
 ## Features
 
-- Generate sales call transcripts (using OpenAI or mock data)
+- Generate realistic sales call transcripts
 - Summarize call transcripts
 - Answer questions about call content
 - Support for saving transcripts to files
 - Colorful CLI output
+- Works with or without OpenAI API key
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - npm or yarn
-- OpenAI API key (optional)
 
-## Installation
+## Quick Start
 
 1. Clone the repository
 2. Install dependencies:
 ```bash
 npm install
 ```
-3. (Optional) Create a `.env` file in the root directory with your OpenAI API key:
-```
-OPENAI_API_KEY=your_api_key_here
-```
-4. Build the TypeScript code:
+3. Build the TypeScript code:
 ```bash
 npm run build
 ```
 
-## Usage
+## Running the Application
 
-### Demo Mode (No API Key Required)
+The application can run in two modes:
 
-To try out the application without an OpenAI API key:
+### 1. Mock Mode (No API Key Required)
+
+By default, if no OpenAI API key is provided, the application automatically uses the mock service. This is perfect for:
+- Testing and development
+- Demonstrations
+- Understanding the application flow
+- Interviews and code reviews
+
+To run in mock mode, simply use any of the commands without setting up an API key:
 
 ```bash
-npm run demo
+# Generate a mock transcript
+npm run generate -- -t "cloud computing services" -d 5
+
+# Summarize the transcript
+npm run summarize -- -f transcript.json
+
+# Ask questions about the transcript
+npm run query -- -f transcript.json -q "What product was discussed?"
 ```
 
-This will use mock data to demonstrate the application's features.
+### 2. OpenAI Mode (API Key Required)
 
-### Using OpenAI (API Key Required)
+To use OpenAI's GPT models for more dynamic and context-aware responses:
 
-If you have an OpenAI API key with chat completion permissions:
+1. Create a `.env` file in the root directory:
+```
+OPENAI_API_KEY=your_api_key_here
+```
 
-#### Generate a Transcript
-
+2. Use the same commands as above - they'll automatically use OpenAI when an API key is present:
 ```bash
+# Generate using OpenAI
 npm run generate -- -t "cloud computing services" -d 5 -o transcript.json
 ```
 
-Options:
+## Command Options
+
+### Generate Transcript
+```bash
+npm run generate -- -t <topic> -d <duration> -o <output>
+```
 - `-t, --topic`: Topic of the sales call (required)
 - `-d, --duration`: Duration in minutes (default: 5)
 - `-o, --output`: Output file name (default: transcript.json)
 
-#### Summarize a Transcript
-
+### Summarize Transcript
 ```bash
-npm run summarize -- -f transcript.json
+npm run summarize -- -f <file>
 ```
-
-Options:
 - `-f, --file`: Path to the transcript file (required)
 
-#### Query a Transcript
-
+### Query Transcript
 ```bash
-npm run query -- -f transcript.json -q "What product was discussed?"
+npm run query -- -f <file> -q <question>
 ```
-
-Options:
 - `-f, --file`: Path to the transcript file (required)
 - `-q, --question`: Question about the transcript (required)
 
@@ -84,43 +97,44 @@ Options:
 npm test
 ```
 
+The test suite includes comprehensive tests for both the OpenAI service and the mock service.
+
 ## Project Structure
 
-- `/src`
-  - `/commands`: CLI command implementations
-  - `/services`: Core business logic (OpenAI and mock services)
-  - `/types`: TypeScript type definitions
-  - `/samples`: Sample transcript data
-  - `/__tests__`: Test files
+```
+/src
+├── /commands         # CLI command implementations
+├── /services        # Core business logic
+│   ├── openai.ts    # OpenAI service implementation
+│   └── mock.ts      # Mock service for testing/demo
+├── /types           # TypeScript type definitions
+├── /samples         # Sample transcript data
+└── /tests          # Test files
+```
 
 ## Implementation Details
 
-The project provides two service implementations:
+The project uses a service-based architecture with two interchangeable implementations:
 
-1. **OpenAI Service**: Uses OpenAI's GPT models for generating and analyzing transcripts. Requires an API key with chat completion permissions.
+1. **Mock Service** (`mock.ts`):
+   - No API key required
+   - Pre-defined, realistic responses
+   - Perfect for testing and demos
+   - Zero external dependencies
+   - Instant responses
 
-2. **Mock Service**: Provides pre-defined responses for demonstration purposes. No API key required.
+2. **OpenAI Service** (`openai.ts`):
+   - Requires API key
+   - Dynamic, context-aware responses
+   - Handles rate limiting and retries
+   - Proper error handling
+   - Type-safe implementation
 
-The application automatically falls back to the mock service if:
-- No OpenAI API key is provided
-- The API key is invalid
-- API rate limits are exceeded
-- API quota is exceeded
-
-## AI Usage Transparency
-
-This project uses AI-generated code in the following ways:
-
-1. Initial project structure and boilerplate setup
-2. Basic TypeScript interfaces and types
-3. OpenAI service implementation
-4. CLI command structure
-
-All AI-generated code has been reviewed, tested, and modified to ensure:
-- Proper error handling
-- Type safety
-- Best practices in code organization
-- Comprehensive documentation
+The application automatically selects the appropriate service based on:
+- Presence of OpenAI API key
+- API key validity
+- Rate limit status
+- Error conditions
 
 ## License
 
