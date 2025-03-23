@@ -1,11 +1,32 @@
+# Dependencies
 node_modules/
-dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
 .env
-*.log
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+*.js.map
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
+
+# Test coverage
 coverage/
+
+# Generated transcripts
 *.json
 !package.json
 !package-lock.json
 !tsconfig.json
-!src/samples/*.json
+!sample-transcript.json

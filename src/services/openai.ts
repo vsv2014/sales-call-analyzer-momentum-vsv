@@ -1,83 +1,133 @@
 import { Configuration, OpenAIApi } from 'openai';
-import { TranscriptLine, Speaker } from '../types';
+import { TranscriptLine } from '../types';
+import chalk from 'chalk';
 
 export class OpenAIService {
   private openai: OpenAIApi;
+  private maxRetries: number = 3;
+  private baseDelay: number = 2000; // 2 seconds
 
   constructor() {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is required for OpenAI service');
+    }
     const configuration = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.openai = new OpenAIApi(configuration);
   }
 
-  async generateTranscript(topic: string, duration: number = 5): Promise<TranscriptLine[]> {
+  private async retryWithExponentialBackoff<T>(
+    operation: () => Promise<T>,
+    retryCount: number = 0
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (retryCount >= this.maxRetries) {
+        throw new Error(`Failed after ${this.maxRetries} retries. Last error: ${error.message}`);
+      }
+
+      const delay = this.baseDelay * Math.pow(2, retryCount);
+      console.log(chalk.yellow(`Rate limited, waiting ${delay/1000} seconds before retry ${retryCount + 1}/${this.maxRetries}`));
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return this.retryWithExponentialBackoff(operation, retryCount + 1);
+    }
+  }
+
+  async generateTranscript(topic: string, duration: number): Promise<TranscriptLine[]> {
     const prompt = `Generate a realistic sales call transcript about ${topic}. 
-    The transcript should be ${duration} minutes long and follow this format for each line:
-    timestamp speaker(company): text
-    Include natural conversation flow, objections, and negotiations.`;
+    The transcript should be ${duration} minutes long.
+    Format each line as a timestamp followed by speaker name, company in parentheses, and their message.
+    Make it a natural conversation between a sales representative and a potential customer.
+    Include discussion of features, pricing, and support options.`;
 
-    const response = await this.openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1000
+    return this.retryWithExponentialBackoff(async () => {
+      const response = await this.openai.createCompletion({
+        model: 'gpt-3.5-turbo',
+        prompt,
+        temperature: 0.7,
+        max_tokens: Math.min(2000, duration * 200), // Scale tokens with duration
+      });
+
+      const content = response.data.choices[0]?.text;
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      return this.parseTranscript(content);
     });
-
-    const transcriptText = response.data.choices[0].message?.content;
-    if (!transcriptText) throw new Error("Failed to generate transcript");
-
-    return this.parseTranscript(transcriptText);
   }
 
   async summarizeTranscript(transcript: TranscriptLine[]): Promise<string> {
-    const transcriptText = transcript.map(line => 
-      `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
-    ).join('\n');
+    const transcriptText = transcript
+      .map(line => `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`)
+      .join('\n');
 
-    const response = await this.openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ 
-        role: "user", 
-        content: `Please provide a concise summary of the key points from this sales call transcript:\n${transcriptText}` 
-      }],
-      temperature: 0.5,
-      max_tokens: 200
+    const prompt = `Summarize the key points from this sales call transcript:\n${transcriptText}`;
+
+    return this.retryWithExponentialBackoff(async () => {
+      const response = await this.openai.createCompletion({
+        model: 'gpt-3.5-turbo',
+        prompt,
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+
+      const summary = response.data.choices[0]?.text;
+      if (!summary) {
+        throw new Error('No summary received from OpenAI');
+      }
+
+      return summary;
     });
-
-    return response.data.choices[0].message?.content?.trim() || "No summary generated";
   }
 
   async answerQuestion(transcript: TranscriptLine[], question: string): Promise<string> {
-    const transcriptText = transcript.map(line => 
-      `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`
-    ).join('\n');
+    const transcriptText = transcript
+      .map(line => `${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`)
+      .join('\n');
 
-    const response = await this.openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ 
-        role: "user", 
-        content: `Based on this transcript:\n${transcriptText}\n\nQuestion: ${question}` 
-      }],
-      temperature: 0.3,
-      max_tokens: 150
+    const prompt = `Based on this sales call transcript:\n${transcriptText}\n\nAnswer this question: ${question}`;
+
+    return this.retryWithExponentialBackoff(async () => {
+      const response = await this.openai.createCompletion({
+        model: 'gpt-3.5-turbo',
+        prompt,
+        temperature: 0.3,
+        max_tokens: 200,
+      });
+
+      const answer = response.data.choices[0]?.text;
+      if (!answer) {
+        throw new Error('No answer received from OpenAI');
+      }
+
+      return answer;
     });
-
-    return response.data.choices[0].message?.content?.trim() || "Could not answer the question";
   }
 
-  private parseTranscript(text: string): TranscriptLine[] {
-    const lines = text.split('\n').filter(line => line.trim());
-    return lines.map(line => {
-      const match = line.match(/(\d{2}:\d{2}:\d{2})\s+(\w+)\s*\(([^)]+)\):\s*(.+)/);
-      if (!match) throw new Error(`Invalid line format: ${line}`);
+  private parseTranscript(content: string): TranscriptLine[] {
+    const lines = content.split('\n').filter(line => line.trim());
+    const transcript: TranscriptLine[] = [];
 
-      const [, timestamp, name, company, text] = match;
-      return {
-        timestamp,
-        speaker: { name, company },
-        text,
-      };
-    });
+    for (const line of lines) {
+      const match = line.match(/(\d{2}:\d{2}:\d{2})\s+(\w+)\s*\(([^)]+)\):\s*(.+)/);
+      if (match) {
+        const [_, timestamp, name, company, text] = match;
+        transcript.push({
+          timestamp,
+          speaker: { name, company },
+          text: text.trim()
+        });
+      }
+    }
+
+    if (transcript.length === 0) {
+      throw new Error('Failed to parse transcript from OpenAI response');
+    }
+
+    return transcript;
   }
 }

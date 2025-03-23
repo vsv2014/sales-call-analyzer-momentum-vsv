@@ -1,58 +1,75 @@
 #!/usr/bin/env node
 import { program } from 'commander';
-import { OpenAIService } from './services/openai';
-import { readFileSync } from 'fs';
 import chalk from 'chalk';
-import path from 'path';
-import dotenv from 'dotenv';
-import { Transcript, TranscriptLine } from './types';
+import { TranscriptLine } from './types';
+import * as fs from 'fs';
+import * as path from 'path';
 
-dotenv.config();
+async function loadSampleTranscript(): Promise<TranscriptLine[]> {
+  const filePath = path.join(__dirname, 'samples', 'sample-transcript.json');
+  const data = await fs.promises.readFile(filePath, 'utf8');
+  return JSON.parse(data);
+}
 
-const openAIService = new OpenAIService();
+function generateSummary(transcript: TranscriptLine[]): string {
+  // Mock summary generation without API
+  return "Key points from the call:\n" +
+    "1. Customer is interested in cloud cost optimization\n" +
+    "2. Sales rep offered potential 30% cost reduction\n" +
+    "3. Flexible terms starting from 6 months with annual commitment discounts";
+}
+
+function answerQuestion(transcript: TranscriptLine[], question: string): string {
+  // Mock question answering without API
+  const questionLower = question.toLowerCase();
+  if (questionLower.includes('cost') || questionLower.includes('price')) {
+    return "The sales rep mentioned a potential 30% cost reduction with their new pricing model.";
+  }
+  if (questionLower.includes('commitment') || questionLower.includes('term')) {
+    return "They offer flexible terms starting from 6 months, with additional discounts for annual commitments.";
+  }
+  return "I don't have enough context to answer that specific question based on the transcript.";
+}
 
 async function runDemo() {
-  console.log(chalk.blue('🚀 Starting Sales Call Analyzer Demo'));
-  
+  console.log(chalk.blue('\n🚀 Starting Sales Call Analyzer Demo\n'));
+
   try {
-    // 1. Load sample transcript
-    console.log(chalk.yellow('\n📝 Loading sample transcript...'));
-    const samplePath = path.join(__dirname, 'samples', 'sample-transcript.json');
-    const sampleData: Transcript = JSON.parse(readFileSync(samplePath, 'utf-8'));
-    
-    console.log(chalk.green('Sample transcript loaded successfully!'));
-    console.log(chalk.white('\nTranscript content:'));
-    sampleData.lines.forEach((line: TranscriptLine) => {
-      console.log(
-        `${chalk.gray(line.timestamp)} ${chalk.cyan(line.speaker.name)}(${chalk.blue(line.speaker.company)}): ${line.text}`
-      );
+    // Load sample transcript
+    console.log(chalk.yellow('📝 Loading sample transcript...'));
+    const transcript = await loadSampleTranscript();
+    console.log(chalk.green('Sample transcript loaded successfully!\n'));
+
+    // Display transcript
+    console.log(chalk.yellow('Transcript content:'));
+    transcript.forEach(line => {
+      console.log(`${line.timestamp} ${line.speaker.name}(${line.speaker.company}): ${line.text}`);
     });
+    console.log();
 
-    // 2. Generate summary
-    console.log(chalk.yellow('\n📊 Generating summary...'));
-    const summary = await openAIService.summarizeTranscript(sampleData.lines);
-    console.log(chalk.green('Summary:'));
-    console.log(chalk.white(summary));
+    // Generate summary
+    console.log(chalk.yellow('📊 Generating summary...'));
+    const summary = generateSummary(transcript);
+    console.log(chalk.green('Summary generated successfully!\n'));
+    console.log(summary);
+    console.log();
 
-    // 3. Answer questions
+    // Answer questions
+    console.log(chalk.yellow('❓ Answering sample questions...\n'));
     const questions = [
-      'What was the main topic discussed?',
-      'What pricing information was mentioned?',
-      'What was the commitment period discussed?'
+      "What cost savings were mentioned?",
+      "What are the commitment terms?",
+      "Who initiated the call?"
     ];
 
-    console.log(chalk.yellow('\n❓ Answering sample questions...'));
-    for (const question of questions) {
-      console.log(chalk.cyan(`\nQuestion: ${question}`));
-      const answer = await openAIService.answerQuestion(sampleData.lines, question);
-      console.log(chalk.green('Answer:'), chalk.white(answer));
-    }
+    questions.forEach(question => {
+      console.log(chalk.blue(`Q: ${question}`));
+      console.log(chalk.green(`A: ${answerQuestion(transcript, question)}\n`));
+    });
 
-    console.log(chalk.blue('\n✨ Demo completed successfully!'));
-    console.log(chalk.gray('\nNote: This demo used a sample transcript. In production, you can:'));
-    console.log(chalk.gray('1. Generate new transcripts: npm run generate -- -t "your topic" -d 5'));
-    console.log(chalk.gray('2. Summarize transcripts: npm run summarize -- -f your-transcript.json'));
-    console.log(chalk.gray('3. Query transcripts: npm run query -- -f your-transcript.json -q "your question"'));
+    console.log(chalk.blue('🎉 Demo completed successfully!\n'));
+    console.log(chalk.yellow('Note: This demo uses mock data and responses. In production,'));
+    console.log(chalk.yellow('the application will use OpenAI API for more sophisticated analysis.\n'));
 
   } catch (error) {
     console.error(chalk.red('Error during demo:'), error);
